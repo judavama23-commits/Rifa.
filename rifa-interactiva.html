@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rifa</title>
+<style>
+:root{--bg:#fffaf0;--card:#fff;--ink:#2b2118;--mut:#7a6a5a;--free:#fff3d6;--line:#e8d9b8;--paid:#1f7a4d;--owe:#d9822b;--btn:#2b2118;--btnt:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1612;--card:#251e18;--ink:#f5ebdd;--mut:#b5a692;--free:#3a2f23;--line:#4a3c2c;--paid:#37a56f;--owe:#e08f3a;--btn:#f5ebdd;--btnt:#1b1612}}
+:root[data-theme="dark"]{--bg:#1b1612;--card:#251e18;--ink:#f5ebdd;--mut:#b5a692;--free:#3a2f23;--line:#4a3c2c;--paid:#37a56f;--owe:#e08f3a;--btn:#f5ebdd;--btnt:#1b1612}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:14px}
+.wrap{max-width:600px;margin:0 auto}
+h1{font-size:1.5rem;text-align:center;margin:6px 0 10px}
+.leg{display:flex;gap:12px;justify-content:center;font-size:.85rem;color:var(--mut);margin-bottom:10px;flex-wrap:wrap}
+.leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:1px solid var(--line)}
+#grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:var(--card);padding:8px;border:2px solid var(--line);border-radius:14px}
+.n{min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;background:var(--free);border:1px solid var(--line);color:var(--ink);padding:2px;font-family:inherit;overflow:hidden}
+.n b{font-size:1rem;line-height:1.1}
+.n span{font-size:.62rem;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n.paid{background:var(--paid);border-color:var(--paid);color:#fff}
+.n.owe{background:var(--owe);border-color:var(--owe);color:#fff}
+.edit .n{cursor:pointer}
+#cnt{text-align:center;margin-top:10px;color:var(--mut);font-size:.9rem}
+#msg{text-align:center;margin-top:6px;font-size:.88rem;color:var(--mut);min-height:1.2em}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#ov.on{display:flex}
+#dlg{background:var(--card);width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
+#dlg h2{margin:0 0 12px;font-size:1.2rem}
+#dlg input[type=text]{width:100%;box-sizing:border-box;font-size:1rem;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-family:inherit}
+.seg{display:flex;gap:8px;margin:12px 0}
+.seg button{flex:1;padding:11px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font-size:1rem;font-weight:600;font-family:inherit}
+.seg button.on.paid{background:var(--paid);border-color:var(--paid);color:#fff}
+.seg button.on.owe{background:var(--owe);border-color:var(--owe);color:#fff}
+.row{display:flex;gap:8px}
+.row button{flex:1;padding:12px;border-radius:10px;border:0;font-size:1rem;font-weight:600;font-family:inherit;background:var(--btn);color:var(--btnt)}
+.row button.s{background:var(--line);color:var(--ink)}
+.row button.d{background:transparent;color:#c62839;border:1px solid #c62839}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🎟️ Rifa</h1>
+<div class="leg"><span><i style="background:var(--free)"></i>Disponible</span><span><i style="background:var(--owe)"></i>Debe</span><span><i style="background:var(--paid)"></i>Pagó</span></div>
+<div id="grid"></div>
+<div id="cnt"></div>
+<div style="text-align:center;margin-top:10px"><button id="dl" style="display:none;border:0;border-radius:10px;padding:12px 20px;font-size:1rem;font-weight:600;background:var(--btn);color:var(--btnt);font-family:inherit">⬇️ Descargar imagen</button></div>
+<div id="msg"></div>
+</div>
+<div id="ov"><div id="dlg">
+<h2 id="dt"></h2>
+<input type="text" id="nm" placeholder="Nombre" maxlength="30" autocomplete="off">
+<div class="seg"><button id="bo" class="owe on">Debe</button><button id="bp" class="paid">Pagó</button></div>
+<div class="row"><button class="s" id="cx">Cancelar</button><button id="sv">Guardar</button></div>
+<div class="row" style="margin-top:8px"><button class="d" id="fr">Liberar número</button></div>
+</div></div>
+<script type="application/json" id="state">{"e":{}}</script>
+<script>
+(function(){
+var E = {};
+try{E = JSON.parse(localStorage.getItem('rifa_e')||'{}')||{};}catch(e){E={};}
+function persist(){try{localStorage.setItem('rifa_e',JSON.stringify(E));}catch(e){$('msg').textContent='No se pudo guardar en este navegador.';}}
+var editor = true, cur = 0, paid = false, busy = false;
+var $ = function(i){return document.getElementById(i);};
+
+function render(){
+  var g = $('grid'); g.innerHTML = '';
+  var np = 0, no = 0;
+  for (var i = 1; i <= 100; i++) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.dataset.n = i; b.disabled = !editor;
+    var x = E[i], c = 'n';
+    if (x) { c += x.p ? ' paid' : ' owe'; x.p ? np++ : no++; }
+    b.className = c;
+    var s = document.createElement('b'); s.textContent = i; b.appendChild(s);
+    if (x) { var t = document.createElement('span'); t.textContent = x.n; b.appendChild(t); }
+    g.appendChild(b);
+  }
+  $('cnt').textContent = (100 - np - no) + ' disponibles · ' + no + ' deben · ' + np + ' pagaron';
+}
+
+function setSeg(p){ paid = p; $('bp').classList.toggle('on', p); $('bo').classList.toggle('on', !p); }
+$('bp').onclick = function(){ setSeg(true); };
+$('bo').onclick = function(){ setSeg(false); };
+$('cx').onclick = function(){ $('ov').classList.remove('on'); };
+
+$('grid').addEventListener('click', function(e){
+  if (!editor) return;
+  var el = e.target.closest('.n'); if (!el) return;
+  cur = +el.dataset.n;
+  var x = E[cur];
+  $('dt').textContent = 'Número ' + cur;
+  $('nm').value = x ? x.n : '';
+  setSeg(x ? !!x.p : false);
+  $('fr').style.display = x ? '' : 'none';
+  $('ov').classList.add('on');
+  setTimeout(function(){ $('nm').focus(); }, 50);
+});
+
+function publish(){persist();}
+
+$('sv').onclick = function(){
+  var n = $('nm').value.trim();
+  if (!n) { $('nm').focus(); return; }
+  E[cur] = {n: n, p: paid ? 1 : 0};
+  $('ov').classList.remove('on'); render(); publish();
+};
+$('fr').onclick = function(){
+  delete E[cur]; $('ov').classList.remove('on'); render(); publish();
+};
+
+
+function makePng(){
+  var W=1000,cw=190,ch=70,gap=8,top=110,pad=20,rows=20;
+  var H=top+rows*(ch+gap)+pad+40;
+  var c=document.createElement('canvas');c.width=W;c.height=H;
+  var x=c.getContext('2d');
+  x.fillStyle='#fffaf0';x.fillRect(0,0,W,H);
+  x.fillStyle='#2b2118';x.textAlign='center';x.font='bold 44px sans-serif';x.fillText('🎟️ Rifa',W/2,55);
+  var lx=[['#fff3d6','Disponible'],['#d9822b','Debe'],['#1f7a4d','Pagó']],px=W/2-230;
+  x.font='24px sans-serif';
+  lx.forEach(function(l){x.fillStyle=l[0];x.fillRect(px,78,22,22);x.strokeStyle='#e8d9b8';x.strokeRect(px,78,22,22);x.fillStyle='#2b2118';x.textAlign='left';x.fillText(l[1],px+30,97);px+=l[1].length*14+80;});
+  for(var i=1;i<=100;i++){
+    var col=(i-1)%5,row=Math.floor((i-1)/5);
+    var X=pad+col*(cw+gap)+ (W-2*pad-5*cw-4*gap)/2,Y=top+row*(ch+gap);
+    var e=E[i];
+    x.fillStyle=e?(e.p?'#1f7a4d':'#d9822b'):'#fff3d6';
+    x.fillRect(X,Y,cw,ch);x.strokeStyle=e?'rgba(0,0,0,.15)':'#e8d9b8';x.strokeRect(X,Y,cw,ch);
+    x.fillStyle=e?'#fff':'#2b2118';x.textAlign='center';
+    x.font='bold 30px sans-serif';x.fillText(i,X+cw/2,Y+(e?32:44));
+    if(e){var f=22,t=e.n;x.font=f+'px sans-serif';while(x.measureText(t).width>cw-12&&f>12){f--;x.font=f+'px sans-serif';}x.fillText(t,X+cw/2,Y+58);}
+  }
+  return new Promise(function(r){c.toBlob(r,'image/png');});
+}
+(function(){var b=$('dl');b.style.display='';b.onclick=function(){makePng().then(function(bl){var a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='rifa.png';document.body.appendChild(a);a.click();a.remove();});};})();
+
+render();
+$('grid').parentNode.classList.add('edit');
+$('msg').textContent='Toca un número para asignarlo. Se guarda solo en este dispositivo.';
+})();
+</script>
+</body>
+</html>
